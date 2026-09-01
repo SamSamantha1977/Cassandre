@@ -1,0 +1,96 @@
+name: Publish Worker bootstrap
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Releases/**"
+      - "INSTALL-M3DIA-WORKER.cmd"
+      - "setup_windows.cs"
+      - "build-setup-windows.ps1"
+      - "setup_windows.exe"
+      - "INSTALL-M3DIA-WORKER.command"
+      - "INSTALL-M3DIA-WORKER.sh"
+      - "install-windows.ps1"
+      - "install-linux.sh"
+      - "install-macos.sh"
+      - "packaging/linux/**"
+      - ".github/workflows/publish-release.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-windows-setup:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build setup_windows.exe
+        shell: powershell
+        run: .\build-setup-windows.ps1
+      - name: Upload Windows setup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cassandra-windows-setup
+          path: setup_windows.exe
+          if-no-files-found: error
+
+  release:
+    needs: build-windows-setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Windows setup artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cassandra-windows-setup
+          path: .
+
+      - name: Build native Linux installer packages
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby-full rpm
+          sudo gem install --no-document fpm
+          chmod +x packaging/linux/build-native-packages.sh
+          packaging/linux/build-native-packages.sh
+
+      - name: Refresh SHA256SUMS
+        shell: bash
+        run: |
+          {
+            cd Releases
+            sha256sum \
+              M3DIA-Worker-Windows.zip \
+              M3DIA-Worker-Linux.tar.gz \
+              M3DIA-Worker-macOS.zip \
+              M3DIA-Worker.deb \
+              M3DIA-Worker.rpm \
+              INSTALL-M3DIA-WORKER-macOS.zip
+            cd ..
+            sha256sum setup_windows.exe INSTALL-M3DIA-WORKER.cmd INSTALL-M3DIA-WORKER.sh
+          } | sed 's#  Releases/#  #' > Releases/SHA256SUMS.txt
+
+      - name: Publish or update stable Worker release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: worker-bootstrap
+          name: Cassandre Worker bootstrap
+          make_latest: true
+          prerelease: false
+          overwrite_files: true
+          body: |
+            Public installation packages for the Cassandre Worker.
+
+            Windows and Linux are supported targets. macOS is experimental and not guaranteed on every macOS version/configuration.
+
+            For non-technical users, prefer the dedicated launchers/packages described in README.md.
+          files: |
+            setup_windows.exe
+            INSTALL-M3DIA-WORKER.cmd
+            INSTALL-M3DIA-WORKER.sh
+            Releases/INSTALL-M3DIA-WORKER-macOS.zip
+            Releases/M3DIA-Worker-Windows.zip
+            Releases/M3DIA-Worker-Linux.tar.gz
+            Releases/M3DIA-Worker-macOS.zip
+            Releases/M3DIA-Worker.deb
+            Releases/M3DIA-Worker.rpm
+            Releases/SHA256SUMS.txt
