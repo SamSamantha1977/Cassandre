@@ -30,15 +30,17 @@ try {
     Invoke-WebRequest -UseBasicParsing -Uri $AssetUrl -OutFile $ZipPath
 
     try {
-        $hashText = (Invoke-WebRequest -UseBasicParsing -Uri $HashesUrl).Content
+        $hashResponse = Invoke-WebRequest -UseBasicParsing -Uri $HashesUrl
+        $hashText = if ($hashResponse.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($hashResponse.Content) } else { [string]$hashResponse.Content }
         $expected = $null
         foreach ($line in ($hashText -split "`r?`n")) { if ($line -match '^\s*([0-9A-Fa-f]{64})\s+\*?(.+?)\s*$' -and $Matches[2].Trim() -eq $Asset) { $expected=$Matches[1].ToUpperInvariant(); break } }
-        if ($expected) { $actual=(Get-FileHash -Algorithm SHA256 -LiteralPath $ZipPath).Hash.ToUpperInvariant(); if ($actual -ne $expected) { throw "Empreinte SHA-256 invalide pour $Asset" }; Write-CMTraceLog 'Empreinte SHA-256 validee.' } else { Write-CMTraceLog 'SHA256SUMS.txt ne contient pas encore une entree exploitable pour cet asset; poursuite.' 2 }
-    } catch { Write-CMTraceLog ("Controle SHA-256 non disponible: " + $_.Exception.Message) 2 }
+        if (-not $expected) { throw "SHA256SUMS.txt ne contient aucune entree exploitable pour $Asset" }
+        $actual=(Get-FileHash -Algorithm SHA256 -LiteralPath $ZipPath).Hash.ToUpperInvariant(); if ($actual -ne $expected) { throw "Empreinte SHA-256 invalide pour $Asset" }; Write-CMTraceLog 'Empreinte SHA-256 validee.'
+    } catch { Write-CMTraceLog ("Controle SHA-256 en echec: " + $_.Exception.Message) 3; throw }
 
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $ExtractRoot -Force
     $launcher = Get-ChildItem -LiteralPath $ExtractRoot -Filter 'lanceur.cmd' -File -Recurse | Select-Object -First 1
-    if ($launcher) { Write-CMTraceLog "Execution du lanceur package: $($launcher.FullName)"; $p=Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',('"'+$launcher.FullName+'"')) -WorkingDirectory $launcher.DirectoryName -Wait -PassThru; if ($p.ExitCode -ne 0) { throw "Le lanceur du package a retourne $($p.ExitCode)." } }
+    if ($launcher) { Write-CMTraceLog "Execution du lanceur package: $($launcher.FullName)"; $p=Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',('"'+$launcher.FullName+'"')) -WorkingDirectory $launcher.DirectoryName -Wait -PassThru; if ($p.ExitCode -ne 0) { foreach($diag in @((Join-Path $env:ProgramData 'M3DIACompute-Bootstrap\bootstrap.cmtrace.log'),(Join-Path $env:ProgramData 'M3DIACompute\Logs\install.cmtrace.log'))){ if(Test-Path -LiteralPath $diag){ Write-CMTraceLog ("Diagnostic depuis $diag") 3; foreach($line in @(Get-Content -LiteralPath $diag -Tail 80 -ErrorAction SilentlyContinue)){ if($line){ Write-CMTraceLog ([string]$line) 3 } } } }; throw "Le lanceur du package a retourne $($p.ExitCode)." } }
     else { $bootstrap=Get-ChildItem -LiteralPath $ExtractRoot -Filter 'bootstrap.ps1' -File -Recurse | Select-Object -First 1; if (-not $bootstrap) { throw 'Aucun lanceur.cmd ni bootstrap.ps1 trouve dans le package Windows.' }; Write-CMTraceLog "Execution bootstrap package: $($bootstrap.FullName)"; & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap.FullName; if ($LASTEXITCODE -ne 0) { throw "Le bootstrap du package a retourne $LASTEXITCODE." } }
 
     Write-CMTraceLog 'Installation publique Windows terminee avec succes.'
