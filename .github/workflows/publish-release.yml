@@ -13,8 +13,7 @@ on:
       - "install-windows.ps1"
       - "install-linux.sh"
       - "install-macos.sh"
-      - "packaging/linux/**"
-      - "packaging/macos/**"
+      - "packaging/**"
       - ".github/workflows/publish-release.yml"
   workflow_dispatch:
 permissions:
