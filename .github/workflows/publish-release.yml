@@ -14,6 +14,7 @@ on:
       - "install-linux.sh"
       - "install-macos.sh"
       - "packaging/linux/**"
+      - "packaging/macos/**"
       - ".github/workflows/publish-release.yml"
   workflow_dispatch:
 permissions:
@@ -53,6 +54,14 @@ jobs:
           chmod +x packaging/linux/build-native-packages.sh
           packaging/linux/build-native-packages.sh
 
+      - name: Build self-contained macOS installer
+        shell: bash
+        run: python3 packaging/macos/build_cass_macos.py
+
+      - name: Verify macOS installer end-to-end
+        shell: bash
+        run: python3 packaging/macos/verify_cass_macos.py
+
       - name: Refresh SHA256SUMS
         shell: bash
         run: |
@@ -64,7 +73,7 @@ jobs:
               M3DIA-Worker-macOS.zip \
               M3DIA-Worker.deb \
               M3DIA-Worker.rpm \
-              INSTALL-M3DIA-WORKER-macOS.zip
+              Cass-MacOs.zip
             cd ..
             sha256sum setup_windows.exe INSTALL-M3DIA-WORKER.cmd INSTALL-M3DIA-WORKER.sh
           } | sed 's#  Releases/#  #' > Releases/SHA256SUMS.txt
@@ -80,17 +89,26 @@ jobs:
           body: |
             Public installation packages for the Cassandre Worker.
 
-            Windows and Linux are supported targets. macOS is experimental and not guaranteed on every macOS version/configuration.
+            Windows and Linux are supported targets. macOS remains experimental on untested versions/configurations.
+
+            macOS: download only Cass-MacOs.zip. It is the self-contained public installer.
+            M3DIA-Worker-macOS.zip is a technical package and is not intended for manual installation.
 
             For non-technical users, prefer the dedicated launchers/packages described in README.md.
           files: |
             setup_windows.exe
             INSTALL-M3DIA-WORKER.cmd
             INSTALL-M3DIA-WORKER.sh
-            Releases/INSTALL-M3DIA-WORKER-macOS.zip
+            Releases/Cass-MacOs.zip
             Releases/M3DIA-Worker-Windows.zip
             Releases/M3DIA-Worker-Linux.tar.gz
             Releases/M3DIA-Worker-macOS.zip
             Releases/M3DIA-Worker.deb
             Releases/M3DIA-Worker.rpm
             Releases/SHA256SUMS.txt
+
+      - name: Remove superseded macOS public asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete-asset worker-bootstrap INSTALL-M3DIA-WORKER-macOS.zip --yes || true

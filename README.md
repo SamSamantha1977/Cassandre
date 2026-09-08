@@ -101,11 +101,19 @@ Pour les distributions ne prenant pas directement en charge les packages précé
 
 Les packages `.deb` et `.rpm` restent recommandés aux utilisateurs non techniques.
 
-### macOS — expérimental
+### macOS
 
-Une version macOS est également publiée sous la forme **`INSTALL-M3DIA-WORKER-macOS.zip`**.
+Pour macOS, téléchargez **uniquement `Cass-MacOs.zip`**.
 
-Le fonctionnement sur macOS reste expérimental et n'est pas garanti sur toutes les versions et configurations du système.
+1. Ouvrez le ZIP téléchargé.
+2. Double-cliquez sur **`Cassandre-Installer.command`**.
+3. Si macOS bloque l'ouverture car le développeur n'est pas identifié : cliquez sur **OK**, puis ouvrez **Préférences Système → Sécurité et confidentialité → Général → Ouvrir quand même** et confirmez **Ouvrir**.
+4. Validez l'autorisation administrateur demandée par macOS.
+5. Attendez le message **`Cassandre Worker est installe.`**
+
+`Cass-MacOs.zip` est autonome : le paquet technique du WORKER est inclus dans l'archive et son empreinte SHA-256 est vérifiée avant installation. Il n'est donc plus nécessaire que le lanceur télécharge un second package d'installation depuis GitHub.
+
+Le fichier `M3DIA-Worker-macOS.zip` reste un package technique interne de la Release et **ne doit pas être choisi pour une installation manuelle**.
 
 ## Si Windows SmartScreen affiche un avertissement
 
@@ -131,8 +139,8 @@ La Release GitHub `worker-bootstrap` contient les points d'entrée grand public 
 - **Linux Fedora/RHEL/Rocky/Alma** : `M3DIA-Worker.rpm`
 - **Linux universel** : `INSTALL-M3DIA-WORKER.sh`
 - **Linux package technique** : `M3DIA-Worker-Linux.tar.gz`
-- **macOS grand public** : `INSTALL-M3DIA-WORKER-macOS.zip`
-- **macOS package technique** : `M3DIA-Worker-macOS.zip`
+- **macOS grand public — à télécharger** : `Cass-MacOs.zip`
+- **macOS package technique — ne pas télécharger manuellement** : `M3DIA-Worker-macOS.zip`
 
 Les empreintes SHA-256 sont fournies dans **`SHA256SUMS.txt`** pour permettre de vérifier l'intégrité des fichiers téléchargés.
 
