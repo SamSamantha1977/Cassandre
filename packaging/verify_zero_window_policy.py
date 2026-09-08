@@ -101,6 +101,8 @@ def verify_macos():
             for bad in ("terminal.app","open -a terminal","osascript","/bin/sh","/bin/bash","/bin/zsh"):
                 need(bad not in joined,"macOS: commande interactive interdite dans "+name+": "+bad)
             need(obj.get("ProcessType")=="Background","macOS: ProcessType != Background: "+name)
+            need(obj.get("StandardOutPath")=="/dev/null","macOS: stdout non redirige vers /dev/null: "+name)
+            need(obj.get("StandardErrorPath")=="/dev/null","macOS: stderr non redirige vers /dev/null: "+name)
     cm("macOS ZERO-WINDOW valide.")
 
 def main():

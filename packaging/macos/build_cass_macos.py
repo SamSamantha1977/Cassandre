@@ -28,6 +28,20 @@ def patch_entry(name,data):
     if Path(name).suffix.lower() not in {".txt",".md",".py",".sh",".command",".ini",".json",".yml",".yaml",".cfg",".conf"}:
         return data
     s=text(data)
+    normalized=name.replace("\\","/")
+    if normalized.endswith("m3dia/platform_integration.py"):
+        s=re.sub(r'\n\s*"StandardOutPath": "/dev/null",', "", s)
+        s=re.sub(r'\n\s*"StandardErrorPath": "/dev/null",', "", s)
+        marker='"ProcessType": "Background",'
+        if s.count(marker)!=2:
+            raise RuntimeError("Nombre inattendu de ProcessType Background dans platform_integration.py")
+        s=s.replace(
+            marker,
+            marker+'\n        "StandardOutPath": "/dev/null",\n        "StandardErrorPath": "/dev/null",'
+        )
+        if s.count('"StandardOutPath": "/dev/null"') != 2 or s.count('"StandardErrorPath": "/dev/null"') != 2:
+            raise RuntimeError("Redirection /dev/null macOS incomplete dans platform_integration.py")
+        return s.encode("utf-8")
     if not name.endswith("install.command"):return s.encode("utf-8")
     pat=re.compile(r"FRAGMENT=\$\(\$PY - <<'PY'\r?\n.*?\r?\nPY\r?\n\)",re.S)
     block="""FRAGMENT="${M3DIA_INSTALL_SHARED_FRAGMENT:-}"
