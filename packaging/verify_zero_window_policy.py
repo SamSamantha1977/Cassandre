@@ -16,9 +16,14 @@ def cm(msg,t=1):
 def need(ok,msg):
     if not ok:raise AssertionError(msg)
 
+def find_member(z,name):
+    wanted=name.replace("\\","/").lstrip("/")
+    matches=[n for n in z.namelist() if n.replace("\\","/").lstrip("/")==wanted or n.replace("\\","/").endswith("/"+wanted)]
+    need(len(matches)==1,"Fichier absent ou ambigu: "+name+" ; matches="+repr(matches))
+    return matches[0]
+
 def read(z,name):
-    need(name in z.namelist(),"Fichier absent: "+name)
-    return z.read(name).decode("utf-8","replace")
+    return z.read(find_member(z,name)).decode("utf-8","replace")
 
 def verify_windows():
     p=REL/"M3DIA-Worker-Windows.zip"
