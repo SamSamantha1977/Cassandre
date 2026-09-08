@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import io, plistlib, zipfile
+import io, plistlib, tarfile, zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -42,6 +42,36 @@ def verify_windows():
             need(bad not in scheduler and bad not in installer,"Windows: Terminal interdit: "+bad)
     cm("Windows ZERO-WINDOW valide.")
 
+def verify_linux():
+    p=REL/"M3DIA-Worker-Linux.tar.gz"
+    need(p.is_file(),"Package Linux absent")
+    with tarfile.open(p,"r:gz") as t:
+        names=t.getnames()
+        def tread(name):
+            matches=[n for n in names if n.replace("\\","/").lstrip("/")==name or n.replace("\\","/").endswith("/"+name)]
+            need(bool(matches),"Linux: fichier absent: "+name)
+            f=t.extractfile(matches[-1]); need(f is not None,"Linux: lecture impossible: "+name)
+            return f.read().decode("utf-8","replace")
+        src=tread("m3dia/platform_integration.py")
+        ns={}
+        exec(compile(src,"<platform_integration-linux>","exec"),ns)
+        units=ns["linux_worker_units"](Path("/opt/m3diacompute"),"/usr/bin/python3","testuser")
+        need(bool(units),"Linux: aucune unite systemd generee")
+        for name,content in units.items():
+            low=content.lower()
+            if name.endswith(".service"):
+                exec_lines=[line for line in content.splitlines() if line.startswith("ExecStart=")]
+                need(len(exec_lines)==1,"Linux: ExecStart manquant/ambigu: "+name)
+                cmd=exec_lines[0].lower()
+                need("python" in cmd,"Linux: service n appelle pas Python directement: "+name)
+                for bad in ("xterm","gnome-terminal","konsole","terminal","/bin/sh","/bin/bash","/bin/zsh","powershell","cmd.exe"):
+                    need(bad not in cmd,"Linux: commande interactive interdite dans "+name+": "+bad)
+            need("standardoutput=tty" not in low and "standarderror=tty" not in low,"Linux: TTY interdit: "+name)
+        scheduler=tread("m3dia/scheduler.py").lower()
+        for bad in ("xterm","gnome-terminal","konsole","open -a terminal","terminal.app"):
+            need(bad not in scheduler,"Linux runtime ouvre un terminal: "+bad)
+    cm("Linux ZERO-WINDOW valide.")
+
 def verify_macos():
     p=REL/"Cass-MacOs.zip"
     need(p.is_file(),"Package macOS public absent")
@@ -76,6 +106,7 @@ def verify_macos():
 def main():
     cm("Verification ZERO-WINDOW commencee.")
     verify_windows()
+    verify_linux()
     verify_macos()
     cm("Verification ZERO-WINDOW terminee avec succes.")
     print("VERIFY_ZERO_WINDOW=OK")
