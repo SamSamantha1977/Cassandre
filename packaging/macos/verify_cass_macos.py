@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import hashlib, io, os, re, subprocess, tempfile, urllib.request, zipfile
+import hashlib, io, os, plistlib, re, subprocess, tempfile, urllib.request, zipfile
 from datetime import datetime
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 PUBLIC=ROOT/"Releases"/"Cass-MacOs.zip"
 LOG=Path(__file__).with_suffix(".cmtrace.log")
-EXPECTED={"Cassandre-Installer.command","LISEZ-MOI.txt",".cassandre/M3DIA-Worker-macOS.zip",".cassandre/M3DIA-Worker-macOS.zip.sha256",".cassandre/worker-shared-fragment.txt"}
+EXPECTED={"Cassandre-Installer.app/Contents/Info.plist","Cassandre-Installer.app/Contents/MacOS/CassandreInstaller","Cassandre-Installer.app/Contents/Resources/M3DIA-Worker-macOS.zip","Cassandre-Installer.app/Contents/Resources/M3DIA-Worker-macOS.zip.sha256","Cassandre-Installer.app/Contents/Resources/worker-shared-fragment.txt","LISEZ-MOI.txt"}
 SECRET_URLS=[
  "https://raw.githubusercontent.com/SamSamantha1977/Cassandre/main/worker/sharedsecret.txt",
  "https://raw.githubusercontent.com/SamSamantha1977/Cassandre/refs/heads/main/worker/sharedsecret.txt",
@@ -60,18 +60,26 @@ def main():
     with zipfile.ZipFile(PUBLIC,"r") as z:
         need(z.testzip() is None,"Archive publique corrompue")
         need(set(z.namelist())==EXPECTED,"Contenu archive publique inattendu")
-        mode=(z.getinfo("Cassandre-Installer.command").external_attr>>16)&0o777
-        need(mode&0o111!=0,"Cassandre-Installer.command non executable")
-        launcher=z.read("Cassandre-Installer.command")
-        need(b"damcuvelier" not in launcher.lower(),"Ancienne URL dans lanceur public")
-        need(b"raw.githubusercontent.com" not in launcher.lower(),"Le lanceur public ne doit plus telecharger le bootstrap")
-        need(b"M3DIA_INSTALL_SHARED_FRAGMENT" in launcher,"Le fragment integre n est pas transmis au package technique")
-        fragment=z.read(".cassandre/worker-shared-fragment.txt").decode("utf-8-sig").strip()
+        exe="Cassandre-Installer.app/Contents/MacOS/CassandreInstaller"
+        mode=(z.getinfo(exe).external_attr>>16)&0o777
+        need(mode&0o111!=0,"Executable .app non executable")
+        launcher=z.read(exe)
+        low=launcher.lower()
+        need(b"damcuvelier" not in low,"Ancienne URL dans lanceur public")
+        need(b"raw.githubusercontent.com" not in low,"Le lanceur public ne doit plus telecharger le bootstrap")
+        need(b"m3dia_install_shared_fragment" in low,"Le fragment integre n est pas transmis au package technique")
+        need(b"terminal.app" not in low and b"open -a terminal" not in low,"Le lanceur public ne doit jamais ouvrir Terminal")
+        need(b"read dummy" not in low,"Le lanceur graphique ne doit pas attendre un terminal interactif")
+        info=plistlib.loads(z.read("Cassandre-Installer.app/Contents/Info.plist"))
+        need(info.get("CFBundlePackageType")=="APPL","Bundle macOS invalide")
+        need(info.get("CFBundleExecutable")=="CassandreInstaller","Executable bundle inattendu")
+        need(info.get("LSUIElement") is True,"Installer doit etre agent graphique sans Dock/Terminal")
+        fragment=z.read("Cassandre-Installer.app/Contents/Resources/worker-shared-fragment.txt").decode("utf-8-sig").strip()
         need(bool(fragment) and len(fragment)<=64,"Fragment integre invalide")
-        shell_syntax("Cassandre-Installer.command",launcher)
+        shell_syntax("CassandreInstaller",launcher)
 
-        inner=z.read(".cassandre/M3DIA-Worker-macOS.zip")
-        expected=z.read(".cassandre/M3DIA-Worker-macOS.zip.sha256").decode().split()[0].upper()
+        inner=z.read("Cassandre-Installer.app/Contents/Resources/M3DIA-Worker-macOS.zip")
+        expected=z.read("Cassandre-Installer.app/Contents/Resources/M3DIA-Worker-macOS.zip.sha256").decode().split()[0].upper()
         actual=hashlib.sha256(inner).hexdigest().upper()
         need(actual==expected,"SHA-256 package technique integre invalide")
 
@@ -80,6 +88,24 @@ def main():
         need("install.command" in z.namelist(),"install.command absent du package technique")
         install=z.read("install.command")
         s=install.decode("utf-8")
+        for logical in ("m3dia/platform_integration.py","m3dia/scheduler.py"):
+            need(logical in z.namelist(),"Runtime macOS absent: "+logical)
+            runtime=z.read(logical).decode("utf-8")
+            low_runtime=runtime.lower()
+            need("terminal.app" not in low_runtime and "open -a terminal" not in low_runtime,"Runtime persistant interdit d ouvrir Terminal: "+logical)
+        platform_source=z.read("m3dia/platform_integration.py")
+        ns={}
+        exec(compile(platform_source,"<platform_integration>","exec"),ns)
+        generated=ns["macos_worker_plists"](Path("/Library/Application Support/M3DIACompute"),"/usr/bin/python3","testuser")
+        need(bool(generated),"Aucun LaunchDaemon macOS genere")
+        for name,content in generated.items():
+            obj=plistlib.loads(content.encode("utf-8"))
+            argv=list(obj.get("ProgramArguments") or [])
+            need(argv and "python" in Path(argv[0]).name.lower(),"LaunchDaemon doit appeler Python directement: "+name)
+            joined=" ".join(argv).lower()
+            for forbidden in ("terminal.app","open -a terminal","/bin/zsh","/bin/bash","/bin/sh","osascript"):
+                need(forbidden not in joined,"Commande interactive interdite dans LaunchDaemon "+name+": "+forbidden)
+            need(obj.get("ProcessType")=="Background","LaunchDaemon non Background: "+name)
         need("damcuvelier/M3DIACompute" not in s,"Ancienne URL GitHub dans install.command")
         need('FRAGMENT="${M3DIA_INSTALL_SHARED_FRAGMENT:-}"' in s,"Le package technique ne prefere pas le fragment integre")
         for url in SECRET_URLS:need(url in s,"Fallback absent: "+url)

@@ -43,8 +43,8 @@
                                                   "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/M3DIA-Worker-macOS.zip"
                                               },
                    "Cass-MacOs.zip":  {
-                                           "sha256":  "71B56D5FE83B708048D96F4ED26F24A96DA3701BE0CA3D21B4D03DD75FFF6D10",
-                                           "size":  136612,
+                                           "sha256":  "366735B09529F3028E53CB93EBFA31969E4E90CB339C6D1950191FDBAFD5FA7B",
+                                           "size":  137855,
                                            "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/Cass-MacOs.zip"
                                        },
                    "M3DIA-Worker-setup.exe":  {
@@ -53,7 +53,7 @@
                                                   "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/M3DIA-Worker-setup.exe"
                                               },
                    "SHA256SUMS.txt":  {
-                                          "sha256":  "77C147F1707BCA64086E4C6152BD321CDDCDD3D15E753BABAE2DA81F9748C015",
+                                          "sha256":  "0F36B6A0C0B1BB40D5D95B29E0AB0E715A188DC88A5AA4C26FFF89D82B5F3108",
                                           "size":  357,
                                           "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/SHA256SUMS.txt"
                                       }

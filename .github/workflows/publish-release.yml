@@ -54,13 +54,21 @@ jobs:
           chmod +x packaging/linux/build-native-packages.sh
           packaging/linux/build-native-packages.sh
 
-      - name: Build self-contained macOS installer
+      - name: Build self-contained macOS runtime
         shell: bash
         run: python3 packaging/macos/build_cass_macos.py
+
+      - name: Build no-Terminal macOS app installer
+        shell: bash
+        run: python3 packaging/macos/build_cass_macos_app.py
 
       - name: Verify macOS installer end-to-end
         shell: bash
         run: python3 packaging/macos/verify_cass_macos.py
+
+      - name: Enforce zero-window policy
+        shell: bash
+        run: python3 packaging/verify_zero_window_policy.py
 
       - name: Refresh SHA256SUMS
         shell: bash

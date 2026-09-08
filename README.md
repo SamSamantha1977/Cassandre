@@ -106,10 +106,12 @@ Les packages `.deb` et `.rpm` restent recommandés aux utilisateurs non techniqu
 Pour macOS, téléchargez **uniquement `Cass-MacOs.zip`**.
 
 1. Ouvrez le ZIP téléchargé.
-2. Double-cliquez sur **`Cassandre-Installer.command`**.
+2. Double-cliquez sur **`Cassandre-Installer.app`**.
 3. Si macOS bloque l'ouverture car le développeur n'est pas identifié : cliquez sur **OK**, puis ouvrez **Préférences Système → Sécurité et confidentialité → Général → Ouvrir quand même** et confirmez **Ouvrir**.
 4. Validez l'autorisation administrateur demandée par macOS.
-5. Attendez le message **`Cassandre Worker est installe.`**
+5. Une boîte de dialogue confirme **`Cassandre Worker est installe.`**
+
+**Aucune fenêtre Terminal ne doit apparaître.** L'installateur est une application graphique discrète et, après installation, les tâches permanentes du WORKER sont exécutées directement en arrière-plan par `launchd`. Elles n'ouvrent ni Terminal, ni shell interactif, ni fenêtre de commande.
 
 `Cass-MacOs.zip` est autonome : le paquet technique du WORKER est inclus dans l'archive et son empreinte SHA-256 est vérifiée avant installation. Il n'est donc plus nécessaire que le lanceur télécharge un second package d'installation depuis GitHub.
 
