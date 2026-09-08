@@ -38,13 +38,13 @@
                                                     "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/M3DIA-Worker-Windows.zip"
                                                 },
                    "M3DIA-Worker-macOS.zip":  {
-                                                  "sha256":  "EE04A5B0E511FF6478C698CBC0E5554E7DDD7461646B6E618DBCDB942E76BAEA",
-                                                  "size":  45286,
+                                                  "sha256":  "FADDD163609AF80E918E18BE0E20D5BE1942F570111361A1ABC647A7E3F36ACF",
+                                                  "size":  132167,
                                                   "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/M3DIA-Worker-macOS.zip"
                                               },
                    "Cass-MacOs.zip":  {
-                                           "sha256":  "A6F3AC9D55CF1596D136FE95FEADFF76673A17CE3AF9C8412C02EA09F58B0FA5",
-                                           "size":  46859,
+                                           "sha256":  "71B56D5FE83B708048D96F4ED26F24A96DA3701BE0CA3D21B4D03DD75FFF6D10",
+                                           "size":  136612,
                                            "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/Cass-MacOs.zip"
                                        },
                    "M3DIA-Worker-setup.exe":  {
@@ -53,7 +53,7 @@
                                                   "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/M3DIA-Worker-setup.exe"
                                               },
                    "SHA256SUMS.txt":  {
-                                          "sha256":  "3AB147389D17A5B35D2950D35DE3BF1567E3413785A1EFEA9B1DE57A78EAF992",
+                                          "sha256":  "77C147F1707BCA64086E4C6152BD321CDDCDD3D15E753BABAE2DA81F9748C015",
                                           "size":  357,
                                           "url":  "https://github.com/SamSamantha1977/Cassandre/releases/download/worker-bootstrap/SHA256SUMS.txt"
                                       }

@@ -112,7 +112,7 @@ fi
 
 def clone_info(i):
     o=zipfile.ZipInfo(i.filename,date_time=i.date_time)
-    o.compress_type=zipfile.ZIP_DEFLATED;o.comment=i.comment;o.extra=i.extra
+    o.compress_type=zipfile.ZIP_STORED;o.comment=i.comment;o.extra=i.extra
     o.create_system=i.create_system;o.external_attr=i.external_attr;o.internal_attr=i.internal_attr
     return o
 
@@ -120,7 +120,7 @@ def patch_tech():
     if not TECH.is_file():raise FileNotFoundError(TECH)
 
     tmp=TECH.with_suffix(".zip.tmp")
-    with zipfile.ZipFile(TECH,"r") as zin,zipfile.ZipFile(tmp,"w",zipfile.ZIP_DEFLATED,compresslevel=9) as zout:
+    with zipfile.ZipFile(TECH,"r") as zin,zipfile.ZipFile(tmp,"w",zipfile.ZIP_STORED) as zout:
         if "install.command" not in zin.namelist():raise RuntimeError("install.command absent du package technique")
         for i in zin.infolist():zout.writestr(clone_info(i),patch_entry(i.filename,zin.read(i.filename)))
     tmp.replace(TECH)
@@ -203,11 +203,11 @@ Journal : /tmp/Cassandre-Worker-Installer.cmtrace.log
 """
 
 def ztext(z,name,value,mode=0o100644):
-    i=zipfile.ZipInfo(name);i.create_system=3;i.external_attr=mode<<16;i.compress_type=zipfile.ZIP_DEFLATED
+    i=zipfile.ZipInfo(name);i.create_system=3;i.external_attr=mode<<16;i.compress_type=zipfile.ZIP_STORED
     z.writestr(i,value.encode("utf-8"))
 
 def zbytes(z,name,value,mode=0o100644):
-    i=zipfile.ZipInfo(name);i.create_system=3;i.external_attr=mode<<16;i.compress_type=zipfile.ZIP_DEFLATED
+    i=zipfile.ZipInfo(name);i.create_system=3;i.external_attr=mode<<16;i.compress_type=zipfile.ZIP_STORED
     z.writestr(i,value)
 
 def build_public(tech_sha):
@@ -217,7 +217,7 @@ def build_public(tech_sha):
     tmp=PUBLIC.with_suffix(".zip.tmp")
 
     if tmp.exists():tmp.unlink()
-    with zipfile.ZipFile(tmp,"w",zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+    with zipfile.ZipFile(tmp,"w",zipfile.ZIP_STORED) as z:
         ztext(z,"Cassandre-Installer.command",LAUNCHER,0o100755)
         ztext(z,"LISEZ-MOI.txt",README)
         zbytes(z,".cassandre/M3DIA-Worker-macOS.zip",TECH.read_bytes())
