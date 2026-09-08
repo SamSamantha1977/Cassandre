@@ -14,7 +14,7 @@ SECRET_URLS=[
  "https://github.com/SamSamantha1977/Cassandre/raw/refs/heads/main/worker/sharedsecret.txt",
  "https://api.github.com/repos/SamSamantha1977/Cassandre/contents/worker/sharedsecret.txt?ref=main",
 ]
-PYTHON_URL="https://www.python.org/ftp/python/3.14.7/python-3.14.7-macos11.pkg"
+PYTHON_URLS=["https://www.python.org/ftp/python/3.14.7/python-3.14.7-macos11.pkg","https://www.python.org/ftp/python/3.10.11/python-3.10.11-macos11.pkg"]
 
 def cm(msg,t=1):
     n=datetime.now().astimezone();s=msg.replace("]]>","] ]>")
@@ -46,11 +46,12 @@ def network():
             good+=1;cm("Endpoint SharedSecret OK: "+url)
         except Exception as e:cm("Endpoint SharedSecret KO: "+url+" :: "+str(e),2)
     need(good>=2,"Moins de deux endpoints SharedSecret accessibles.")
-    req=urllib.request.Request(PYTHON_URL,method="HEAD",headers={"User-Agent":"Cassandre-Worker-Installer-Verify"})
-    with urllib.request.urlopen(req,timeout=20) as r:
-        need(getattr(r,"status",200)==200,"Python.org HTTP != 200")
-        need(int(r.headers.get("Content-Length","0"))>10000000,"Package Python macOS inattendu")
-    cm("Package Python macOS accessible.")
+    for python_url in PYTHON_URLS:
+        req=urllib.request.Request(python_url,method="HEAD",headers={"User-Agent":"Cassandre-Worker-Installer-Verify"})
+        with urllib.request.urlopen(req,timeout=20) as r:
+            need(getattr(r,"status",200)==200,"Python.org HTTP != 200: "+python_url)
+            need(int(r.headers.get("Content-Length","0"))>10000000,"Package Python macOS inattendu: "+python_url)
+        cm("Package Python macOS accessible: "+python_url)
 
 def main():
     cm("Verification Cass-MacOs commencee.")
@@ -82,7 +83,8 @@ def main():
         need("damcuvelier/M3DIACompute" not in s,"Ancienne URL GitHub dans install.command")
         need('FRAGMENT="${M3DIA_INSTALL_SHARED_FRAGMENT:-}"' in s,"Le package technique ne prefere pas le fragment integre")
         for url in SECRET_URLS:need(url in s,"Fallback absent: "+url)
-        need(PYTHON_URL in s,"URL Python macOS absente")
+        for python_url in PYTHON_URLS:need(python_url in s,"URL Python macOS absente: "+python_url)
+        need('PYVER="3.10.11"' in s and 'PYVER="3.14.7"' in s,"Selection Python selon version macOS absente")
         m=re.search(r"FRAGMENT=\$\(\$PY - <<'PY'\r?\n(.*?)\r?\nPY\r?\n\)",s,re.S)
         need(m is not None,"Bloc Python SharedSecret introuvable")
         compile(m.group(1),"<sharedsecret-bootstrap>","exec")

@@ -63,8 +63,51 @@ fi"""
     if marker not in s:
         s,n=pat.subn(block,s,count=1)
         if n!=1:raise RuntimeError("Bloc SharedSecret introuvable dans install.command")
-    s=s.replace('/usr/bin/curl -fL --retry 3 --connect-timeout 15 "$URL" -o "$PKG"',
-                '/usr/bin/curl -fL --retry 5 --retry-delay 2 --connect-timeout 15 "$URL" -o "$PKG"')
+    old_python='''PY=$(command -v python3 || true)
+if [ -z "$PY" ]; then
+  PKG="/tmp/m3dia-python-3.14.7-macos11.pkg"
+  URL="https://www.python.org/ftp/python/3.14.7/python-3.14.7-macos11.pkg"
+  cmtrace "Python 3 absent; telechargement du package officiel Python 3.14.7."
+  /usr/bin/curl -fL --retry 5 --retry-delay 2 --connect-timeout 15 "$URL" -o "$PKG"
+  /usr/sbin/installer -pkg "$PKG" -target /
+  rm -f "$PKG"
+  PY=$(command -v python3 || true)
+  [ -n "$PY" ] || PY="/Library/Frameworks/Python.framework/Versions/3.14/bin/python3"
+fi'''
+    new_python='''PY=$(command -v python3 || true)
+if [ -n "$PY" ]; then
+  "$PY" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1 || PY=""
+fi
+if [ -z "$PY" ]; then
+  OSX=$(/usr/bin/sw_vers -productVersion 2>/dev/null || echo "10.15")
+  MAJOR=$(printf '%s' "$OSX" | awk -F. '{print $1+0}')
+  MINOR=$(printf '%s' "$OSX" | awk -F. '{print $2+0}')
+  if [ "$MAJOR" -eq 10 ] && [ "$MINOR" -lt 15 ]; then
+    PYVER="3.10.11"
+    PKG="/tmp/m3dia-python-3.10.11-macos11.pkg"
+    URL="https://www.python.org/ftp/python/3.10.11/python-3.10.11-macos11.pkg"
+    FALLBACK="/Library/Frameworks/Python.framework/Versions/3.10/bin/python3"
+  else
+    PYVER="3.14.7"
+    PKG="/tmp/m3dia-python-3.14.7-macos11.pkg"
+    URL="https://www.python.org/ftp/python/3.14.7/python-3.14.7-macos11.pkg"
+    FALLBACK="/Library/Frameworks/Python.framework/Versions/3.14/bin/python3"
+  fi
+  cmtrace "Python >=3.10 absent; telechargement du package officiel Python $PYVER pour macOS $OSX."
+  /usr/bin/curl -fL --retry 5 --retry-delay 2 --connect-timeout 15 "$URL" -o "$PKG"
+  /usr/sbin/installer -pkg "$PKG" -target /
+  rm -f "$PKG"
+  PY=$(command -v python3 || true)
+  if [ -n "$PY" ]; then
+    "$PY" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1 || PY=""
+  fi
+  [ -n "$PY" ] || PY="$FALLBACK"
+fi
+"$PY" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1 || { cmtrace "Python 3.10+ indisponible apres installation." 3; exit 23; }'''
+    if old_python in s:
+        s=s.replace(old_python,new_python)
+    elif 'PYVER="3.10.11"' not in s:
+        raise RuntimeError("Bloc Python macOS inattendu")
     return s.encode("utf-8")
 
 def clone_info(i):
