@@ -4,3 +4,7 @@ __pycache__/
 Thumbs.db
 *.log
 *.bak
+
+# Sauvegardes BCCE locales - ne pas publier sur GitHub
+archives/
+Archives/

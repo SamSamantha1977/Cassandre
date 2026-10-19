@@ -97,7 +97,7 @@ Aucune commande n'est à saisir.
 
 ### Linux — méthode universelle
 
-Pour les distributions ne prenant pas directement en charge les packages précédents, **`INSTALL-M3DIA-WORKER.sh`** reste disponible dans la Release.
+Pour les distributions ne prenant pas directement en charge les packages précédents, **`INSTALL-CASS-Lin.sh`** reste disponible dans la Release.
 
 Les packages `.deb` et `.rpm` restent recommandés aux utilisateurs non techniques.
 
@@ -139,7 +139,7 @@ La Release GitHub `worker-bootstrap` contient les points d'entrée grand public 
 - **Windows package** : `M3DIA-Worker-Windows.zip`
 - **Linux Debian/Ubuntu/Mint** : `M3DIA-Worker.deb`
 - **Linux Fedora/RHEL/Rocky/Alma** : `M3DIA-Worker.rpm`
-- **Linux universel** : `INSTALL-M3DIA-WORKER.sh`
+- **Linux universel** : `INSTALL-CASS-Lin.sh`
 - **Linux package technique** : `M3DIA-Worker-Linux.tar.gz`
 - **macOS grand public — à télécharger** : `Cass-MacOs.zip`
 - **macOS package technique — ne pas télécharger manuellement** : `M3DIA-Worker-macOS.zip`
