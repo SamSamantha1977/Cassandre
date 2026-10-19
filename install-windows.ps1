@@ -3,48 +3,109 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $Repo = 'SamSamantha1977/Cassandre'
-$Asset = 'M3DIA-Worker-Windows.zip'
-$BaseRelease = "https://github.com/$Repo/releases/latest/download"
-$AssetUrl = "$BaseRelease/$Asset"
-$HashesUrl = "$BaseRelease/SHA256SUMS.txt"
-$TempRoot = Join-Path $env:TEMP ("M3DIA-Worker-Install-" + [guid]::NewGuid().ToString('N'))
-$ZipPath = Join-Path $TempRoot $Asset
-$ExtractRoot = Join-Path $TempRoot 'payload'
-$BootstrapLog = Join-Path $env:TEMP 'M3DIA-Worker-Installer.cmtrace.log'
+$InstallerUrl = "https://raw.githubusercontent.com/$Repo/main/install-user.py"
+$InstallRoot = Join-Path $env:LOCALAPPDATA 'CassandreWorker'
+$LogPath = Join-Path $InstallRoot 'Logs\bootstrap.cmtrace.log'
+$TempRoot = Join-Path $env:TEMP ('CassandreWorker-Install-' + [guid]::NewGuid().ToString('N'))
+$PythonInstaller = Join-Path $TempRoot 'install-user.py'
 
-function Write-CMTraceLog { param([string]$Message,[ValidateSet(1,2,3)][int]$Type=1,[string]$Component='PublicInstaller') try { $now=Get-Date; $safe=[string]$Message -replace '\]\]>','] ]>'; $line='<![LOG['+$safe+']LOG]!><time="'+$now.ToString('HH:mm:ss.fff')+'" date="'+$now.ToString('MM-dd-yyyy')+'" component="'+$Component+'" context="" type="'+$Type+'" thread="'+$PID+'" file="">'; Add-Content -LiteralPath $BootstrapLog -Value $line -Encoding UTF8 } catch {} }
+function Write-CMTraceLog {
+    param([string]$Message,[ValidateSet(1,2,3)][int]$Type=1,[string]$Component='PublicInstaller')
+    try {
+        $dir = Split-Path -Parent $LogPath
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $now=Get-Date
+        $safe=[string]$Message -replace '\]\]>','] ]>'
+        $line='<![LOG['+$safe+']LOG]!><time="'+$now.ToString('HH:mm:ss.fff')+'" date="'+$now.ToString('MM-dd-yyyy')+'" component="'+$Component+'" context="" type="'+$Type+'" thread="'+$PID+'" file="">'
+        Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+    } catch {}
+}
 
-function Test-IsAdministrator { try { $identity=[Security.Principal.WindowsIdentity]::GetCurrent(); $principal=New-Object Security.Principal.WindowsPrincipal($identity); return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) } catch { return $false } }
+function Test-Python311 {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    try {
+        & $Path -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" 2>$null
+        return ($LASTEXITCODE -eq 0)
+    } catch { return $false }
+}
 
-if (-not (Test-IsAdministrator)) {
-    Write-CMTraceLog 'Elevation UAC demandee.' 1
-    $cmd = "& ([scriptblock]::Create((Invoke-RestMethod -UseBasicParsing 'https://raw.githubusercontent.com/$Repo/main/install-windows.ps1')))"
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
-    $p = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand',$encoded) -Verb RunAs -Wait -PassThru
-    exit $p.ExitCode
+function Find-Python311 {
+    $candidates = New-Object System.Collections.Generic.List[string]
+    foreach ($name in @('python.exe','python3.exe')) {
+        try {
+            $cmd = Get-Command $name -ErrorAction Stop
+            if ($cmd.Source) { $candidates.Add([string]$cmd.Source) }
+        } catch {}
+    }
+    foreach ($base in @(
+        (Join-Path $env:LOCALAPPDATA 'Programs\Python'),
+        (Join-Path $env:APPDATA 'uv\data\python'),
+        (Join-Path $env:LOCALAPPDATA 'uv\python')
+    )) {
+        if (Test-Path -LiteralPath $base) {
+            Get-ChildItem -LiteralPath $base -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $candidates.Add($_.FullName) }
+        }
+    }
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        if (Test-Python311 $candidate) { return $candidate }
+    }
+    return $null
+}
+
+function Install-UserPython {
+    $toolDir = Join-Path $InstallRoot 'Tools\uv'
+    $uv = Join-Path $toolDir 'uv.exe'
+    if (-not (Test-Path -LiteralPath $uv -PathType Leaf)) {
+        New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+        $uvScript = Join-Path $TempRoot 'uv-install.ps1'
+        Write-CMTraceLog 'Python 3.11+ absent : installation utilisateur de uv.'
+        Invoke-WebRequest -UseBasicParsing -Uri 'https://astral.sh/uv/install.ps1' -OutFile $uvScript
+        $oldInstallDir = $env:UV_INSTALL_DIR
+        $oldNoModify = $env:UV_NO_MODIFY_PATH
+        try {
+            $env:UV_INSTALL_DIR = $toolDir
+            $env:UV_NO_MODIFY_PATH = '1'
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $uvScript
+            if ($LASTEXITCODE -ne 0) { throw "Installation uv en echec: code $LASTEXITCODE" }
+        } finally {
+            $env:UV_INSTALL_DIR = $oldInstallDir
+            $env:UV_NO_MODIFY_PATH = $oldNoModify
+        }
+    }
+    if (-not (Test-Path -LiteralPath $uv -PathType Leaf)) { throw 'uv.exe introuvable apres installation utilisateur.' }
+    Write-CMTraceLog 'Installation/verfication de Python 3.12 utilisateur via uv.'
+    & $uv python install 3.12 --no-progress
+    if ($LASTEXITCODE -ne 0) { throw "uv python install a retourne $LASTEXITCODE" }
+    $python = (& $uv python find '>=3.11' --system 2>$null | Select-Object -First 1)
+    if (-not $python) { $python = (& $uv python find '>=3.11' 2>$null | Select-Object -First 1) }
+    $python = ([string]$python).Trim()
+    if (-not (Test-Python311 $python)) { throw 'Python 3.11+ introuvable apres installation uv.' }
+    return $python
 }
 
 try {
-    New-Item -ItemType Directory -Path $TempRoot,$ExtractRoot -Force | Out-Null
-    Write-CMTraceLog "Telechargement de $Asset depuis GitHub."
-    Invoke-WebRequest -UseBasicParsing -Uri $AssetUrl -OutFile $ZipPath
-
-    try {
-        $hashResponse = Invoke-WebRequest -UseBasicParsing -Uri $HashesUrl
-        $hashText = if ($hashResponse.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($hashResponse.Content) } else { [string]$hashResponse.Content }
-        $expected = $null
-        foreach ($line in ($hashText -split "`r?`n")) { if ($line -match '^\s*([0-9A-Fa-f]{64})\s+\*?(.+?)\s*$' -and $Matches[2].Trim() -eq $Asset) { $expected=$Matches[1].ToUpperInvariant(); break } }
-        if (-not $expected) { throw "SHA256SUMS.txt ne contient aucune entree exploitable pour $Asset" }
-        $actual=(Get-FileHash -Algorithm SHA256 -LiteralPath $ZipPath).Hash.ToUpperInvariant(); if ($actual -ne $expected) { throw "Empreinte SHA-256 invalide pour $Asset" }; Write-CMTraceLog 'Empreinte SHA-256 validee.'
-    } catch { Write-CMTraceLog ("Controle SHA-256 en echec: " + $_.Exception.Message) 3; throw }
-
-    Expand-Archive -LiteralPath $ZipPath -DestinationPath $ExtractRoot -Force
-    $launcher = Get-ChildItem -LiteralPath $ExtractRoot -Filter 'lanceur.cmd' -File -Recurse | Select-Object -First 1
-    if ($launcher) { Write-CMTraceLog "Execution du lanceur package: $($launcher.FullName)"; $p=Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',('"'+$launcher.FullName+'"')) -WorkingDirectory $launcher.DirectoryName -Wait -PassThru; if ($p.ExitCode -ne 0) { foreach($diag in @((Join-Path $env:ProgramData 'M3DIACompute-Bootstrap\bootstrap.cmtrace.log'),(Join-Path $env:ProgramData 'M3DIACompute\Logs\install.cmtrace.log'))){ if(Test-Path -LiteralPath $diag){ Write-CMTraceLog ("Diagnostic depuis $diag") 3; foreach($line in @(Get-Content -LiteralPath $diag -Tail 80 -ErrorAction SilentlyContinue)){ if($line){ Write-CMTraceLog ([string]$line) 3 } } } }; throw "Le lanceur du package a retourne $($p.ExitCode)." } }
-    else { $bootstrap=Get-ChildItem -LiteralPath $ExtractRoot -Filter 'bootstrap.ps1' -File -Recurse | Select-Object -First 1; if (-not $bootstrap) { throw 'Aucun lanceur.cmd ni bootstrap.ps1 trouve dans le package Windows.' }; Write-CMTraceLog "Execution bootstrap package: $($bootstrap.FullName)"; & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap.FullName; if ($LASTEXITCODE -ne 0) { throw "Le bootstrap du package a retourne $LASTEXITCODE." } }
-
-    Write-CMTraceLog 'Installation publique Windows terminee avec succes.'
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    New-Item -ItemType Directory -Path $TempRoot -Force | Out-Null
+    Write-CMTraceLog 'Installation Windows utilisateur commencee; aucune elevation UAC ne sera demandee.'
+    $python = Find-Python311
+    if (-not $python) { $python = Install-UserPython }
+    Write-CMTraceLog "Python retenu: $python"
+    Invoke-WebRequest -UseBasicParsing -Uri $InstallerUrl -OutFile $PythonInstaller
+    Write-CMTraceLog 'install-user.py telecharge depuis le depot public.'
+    & $python $PythonInstaller
+    if ($LASTEXITCODE -ne 0) { throw "install-user.py a retourne $LASTEXITCODE" }
+    Write-CMTraceLog 'Installation Windows utilisateur terminee avec succes.'
     exit 0
 }
-catch { Write-CMTraceLog ("ECHEC installation Windows: " + $_.Exception.Message) 3; Write-Host ''; Write-Host 'Installation Cassandre Worker impossible.' -ForegroundColor Red; Write-Host $_.Exception.Message -ForegroundColor Red; Write-Host "Journal : $BootstrapLog"; exit 1 }
-finally { Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue }
+catch {
+    Write-CMTraceLog ("ECHEC installation Windows utilisateur: " + $_.Exception.Message) 3
+    Write-Host ''
+    Write-Host 'Installation Cassandre Worker impossible.' -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host "Journal : $LogPath"
+    exit 1
+}
+finally {
+    Remove-Item -LiteralPath $TempRoot -Recurse -Force -ErrorAction SilentlyContinue
+}

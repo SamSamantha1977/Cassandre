@@ -2,44 +2,46 @@
 set -eu
 
 REPO="SamSamantha1977/Cassandre"
-ASSET="M3DIA-Worker-macOS.zip"
-BASE="https://github.com/$REPO/releases/latest/download"
-TMP="/tmp/m3dia-worker-install-$$"
-ZIP="$TMP/$ASSET"
-PAYLOAD="$TMP/payload"
-LOG="/var/log/m3dia-compute-bootstrap.cmtrace.log"
+INSTALLER_URL="https://raw.githubusercontent.com/$REPO/main/install-user.py"
+ROOT="$HOME/Library/Application Support/CassandreWorker"
+LOG="$ROOT/Logs/bootstrap.cmtrace.log"
+TMP="${TMPDIR:-/tmp}/cassandre-worker-install-$$"
+PYINSTALLER="$TMP/install-user.py"
 
+mkdir -p "$ROOT/Logs" "$TMP"
+trap 'rm -rf "$TMP"' EXIT INT TERM
 cmtrace() {
   msg=$1; typ=${2:-1}; now=$(date '+%H:%M:%S.000'); day=$(date '+%m-%d-%Y')
   printf '<![LOG[%s]LOG]!><time="%s" date="%s" component="PublicInstaller" context="" type="%s" thread="%s" file="">\n' "$msg" "$now" "$day" "$typ" "$$" >> "$LOG" 2>/dev/null || true
 }
+valid_python() {
+  [ -n "${1:-}" ] && [ -x "$1" ] && "$1" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)' >/dev/null 2>&1
+}
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "M3DIA Worker : droits administrateur requis pour l'installation." >&2
-  exit 10
-fi
+cmtrace "Installation macOS utilisateur commencee; aucun droit administrateur requis."
+PY=""
+for candidate in "$(command -v python3 2>/dev/null || true)" "$(command -v python 2>/dev/null || true)" "$HOME/.local/bin/python3.12"; do
+  if valid_python "$candidate"; then PY="$candidate"; break; fi
+done
 
-trap 'rm -rf "$TMP"' EXIT INT TERM
-mkdir -p "$PAYLOAD"
-cmtrace "Installation publique macOS commencee."
-/usr/bin/curl -fsSL "$BASE/$ASSET" -o "$ZIP"
-
-if /usr/bin/curl -fsSL "$BASE/SHA256SUMS.txt" -o "$TMP/SHA256SUMS.txt" 2>/dev/null; then
-  expected=$(awk -v f="$ASSET" '$2==f || $2=="*"f {print toupper($1); exit}' "$TMP/SHA256SUMS.txt" 2>/dev/null || true)
-  if [ -n "$expected" ]; then
-    actual=$(/usr/bin/shasum -a 256 "$ZIP" | awk '{print toupper($1)}')
-    [ "$actual" = "$expected" ] || { cmtrace "Empreinte SHA-256 invalide." 3; exit 20; }
-    cmtrace "Empreinte SHA-256 validee."
+if [ -z "$PY" ]; then
+  UV_DIR="$ROOT/Tools/uv"
+  UV="$UV_DIR/uv"
+  mkdir -p "$UV_DIR"
+  if [ ! -x "$UV" ]; then
+    cmtrace "Python 3.11+ absent : installation utilisateur de uv."
+    /usr/bin/curl -LsSf 'https://astral.sh/uv/install.sh' -o "$TMP/uv-install.sh"
+    UV_INSTALL_DIR="$UV_DIR" UV_NO_MODIFY_PATH=1 /bin/sh "$TMP/uv-install.sh"
   fi
+  "$UV" python install 3.12 --no-progress
+  PY=$("$UV" python find '>=3.11' 2>/dev/null | head -n 1 || true)
 fi
+valid_python "$PY" || { cmtrace "Python 3.11+ introuvable apres bootstrap utilisateur." 3; exit 23; }
+cmtrace "Python retenu: $PY"
 
-/usr/bin/ditto -x -k "$ZIP" "$PAYLOAD"
-launcher=$(find "$PAYLOAD" -type f -name 'install.command' -print -quit)
-[ -n "$launcher" ] || { cmtrace "install.command introuvable dans le package macOS." 3; exit 21; }
-/bin/chmod +x "$launcher"
-/usr/bin/xattr -dr com.apple.quarantine "$(dirname "$launcher")" 2>/dev/null || true
-cmtrace "Execution du package macOS."
-/bin/sh "$launcher"
+/usr/bin/curl -fsSL "$INSTALLER_URL" -o "$PYINSTALLER"
+cmtrace "install-user.py telecharge depuis le depot public."
+"$PY" "$PYINSTALLER"
 rc=$?
-[ "$rc" -eq 0 ] && cmtrace "Installation publique macOS terminee avec succes." || cmtrace "Installation publique macOS en echec; code=$rc." 3
+[ "$rc" -eq 0 ] && cmtrace "Installation macOS utilisateur terminee avec succes." || cmtrace "Installation macOS utilisateur en echec; code=$rc." 3
 exit "$rc"
