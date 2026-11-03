@@ -43,7 +43,7 @@ Les échanges nécessaires au fonctionnement du réseau sont protégés et l'ins
 
 L'espace WORKER peut également regrouper les ordinateurs associés à un même participant afin de présenter plus clairement ses machines et leur contribution cumulée.
 
-Il comprend désormais des espaces **APPLICATIONS** et **CONNEXIONS IA**. L'architecture de connecteurs permet à des logiciels compatibles de soumettre des traitements à Cassandre via le WORKER lorsqu'un connecteur est explicitement activé. Un premier connecteur est prévu pour **Blender**, notamment pour les usages de création et de rendu 3D.
+Il comprend désormais des espaces **APPLICATIONS** et **CONNECTEURS**. L'architecture de connecteurs permet à des logiciels compatibles de soumettre des traitements à Cassandre via le WORKER lorsqu'un connecteur est explicitement activé. Un premier connecteur est prévu pour **Blender**, notamment pour les usages de création et de rendu 3D.
 
 L'installation ou la mise à jour d'un connecteur n'est pas poussée automatiquement à un WORKER : elle doit résulter d'une action explicite. Les mécanismes internes d'authentification et de sécurité du réseau restent volontairement hors de la documentation publique.
 
