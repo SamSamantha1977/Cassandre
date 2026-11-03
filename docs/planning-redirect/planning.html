@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cassandre - Planning</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f8;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #5b6773;
+      --line: #d8dde3;
+      --accent: #176b87;
+      --accent-strong: #0f4c5c;
+      --danger: #a73535;
+      --ok: #2f6b3f;
+      --warn: #8a5a00;
+      font-family: Segoe UI, Roboto, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    header { background: #162029; color: #fff; padding: 18px 24px; }
+    header h1 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: 0; }
+    header p { margin: 6px 0 0; color: #c8d2dc; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    section { margin-bottom: 22px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .identity { display: grid; gap: 4px; color: var(--muted); }
+    .identity strong { color: var(--text); }
+    .status { min-height: 24px; color: var(--muted); }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.error { color: var(--danger); }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    fieldset { border: 0; padding: 0; margin: 0; }
+    legend { font-weight: 650; margin-bottom: 10px; }
+    .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .mode { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; cursor: pointer; background: #fff; }
+    .mode input { margin: 0; }
+    .mode span { font-weight: 650; }
+    .mode small { color: var(--muted); line-height: 1.35; }
+    .week { display: grid; gap: 12px; }
+    .day { display: grid; grid-template-columns: 32px 120px 1fr auto; align-items: start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+    .day:first-child { border-top: 0; padding-top: 0; }
+    .day-name { font-weight: 650; padding-top: 8px; }
+    .day-select { margin-top: 11px; width: 18px; height: 18px; }
+    .bulk { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 14px; padding:12px; background:var(--bg); border-radius:8px; }
+    .hint { color:var(--muted); font-size:13px; line-height:1.4; }
+    .crossing { color:var(--muted); font-size:12px; min-width:64px; }
+    .ranges { display: grid; gap: 8px; }
+    .range { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    input, select, button { font: inherit; }
+    input[type="time"], input[type="datetime-local"], input[type="text"], select {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: #fff;
+      min-height: 38px;
+    }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 12px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-strong); }
+    button.danger { color: var(--danger); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .exceptions { display: grid; gap: 10px; }
+    .exception { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 130px minmax(160px, 1fr) auto; gap: 8px; align-items: center; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .empty { color: var(--muted); font-style: italic; }
+    @media (max-width: 760px) {
+      main { padding: 16px; }
+      .modes { grid-template-columns: 1fr; }
+      .day { grid-template-columns: 1fr; }
+      .day-name { padding-top: 0; }
+      .exception { grid-template-columns: 1fr; }
+      .actions { justify-content: stretch; }
+      .actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Planning Cassandre</h1>
+    <p>Disponibilite de ce Worker, geree par le Controller.</p>
+  </header>
+  <main>
+    <section class="panel topbar">
+      <div class="identity">
+        <div>Worker : <strong id="workerName">Detection en cours</strong></div>
+        <div>Dernier contact : <span id="lastSeen">-</span></div>
+      </div>
+      <div id="status" class="status">Chargement du planning...</div>
+    </section>
+
+    <section class="panel">
+      <fieldset>
+        <legend>Mode</legend>
+        <div class="modes">
+          <label class="mode">
+            <input type="radio" name="mode" value="none">
+            <span>Planning par defaut</span>
+            <small>Sans planning personnalise : tous les jours de 21:00:00 a 07:00:00 le lendemain.</small>
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="allow">
+            <span>Autoriser seulement</span>
+            <small>Le Worker peut envisager de travailler uniquement dans les plages definies.</small>
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="deny">
+            <span>Interdire pendant</span>
+            <small>Le fonctionnement automatique reste possible sauf dans les plages indiquees.</small>
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="panel">
+      <h2>Semaine habituelle</h2>
+      <div class="bulk">
+        <label><input type="checkbox" id="selectAllDays"> Selectionner tous</label>
+        <input type="time" id="bulkStart" step="1" value="21:00:00" aria-label="Debut">
+        <span>a</span>
+        <input type="time" id="bulkEnd" step="1" value="07:00:00" aria-label="Fin">
+        <button type="button" id="applySelected">Ajouter la fenetre aux jours selectionnes</button>
+      </div>
+      <p class="hint">Une fin inferieure ou egale au debut traverse minuit. 00:00:00 a 00:00:00 signifie 24 heures. Les chevauchements sont fusionnes automatiquement.</p>
+      <div id="week" class="week"></div>
+    </section>
+
+    <section class="panel">
+      <div class="topbar">
+        <h2>Entre2Dates / exceptions datees</h2>
+        <button type="button" id="addException">Ajouter Entre2Dates</button>
+      </div>
+      <div id="exceptions" class="exceptions"></div>
+    </section>
+
+    <section class="actions">
+      <button type="button" id="reload">Recharger</button>
+      <button type="button" class="primary" id="save">Enregistrer</button>
+    </section>
+  </main>
+
+  <template id="rangeTemplate">
+    <div class="range">
+      <input type="time" class="start" step="1" value="08:00:00">
+      <span>a</span>
+      <input type="time" class="end" step="1" value="17:00:00">
+      <span class="crossing"></span>
+      <button type="button" class="danger remove">Retirer</button>
+    </div>
+  </template>
+
+  <template id="exceptionTemplate">
+    <div class="exception">
+      <input type="date" class="ex-start">
+      <input type="date" class="ex-end">
+      <select class="ex-available">
+        <option value="false">Indisponible</option>
+        <option value="true">Disponible</option>
+      </select>
+      <input type="text" class="ex-reason" maxlength="160" placeholder="Raison facultative">
+      <button type="button" class="danger remove">Retirer</button>
+    </div>
+  </template>
+
+  <script>
+    const days = [
+      ["monday", "Lundi"], ["tuesday", "Mardi"], ["wednesday", "Mercredi"],
+      ["thursday", "Jeudi"], ["friday", "Vendredi"], ["saturday", "Samedi"], ["sunday", "Dimanche"]
+    ];
+    const state = { planning: null };
+    function useLocalWorkerProxy(status) {
+      const local = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      if (!local && [403, 404, 409].includes(Number(status))) {
+        location.replace("http://127.0.0.1:19402" + location.pathname + location.search + location.hash);
+        return true;
+      }
+      return false;
+    }
+    const statusEl = document.getElementById("status");
+    const weekEl = document.getElementById("week");
+    const exceptionsEl = document.getElementById("exceptions");
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = "status " + kind;
+    }
+
+    function addRange(day, start = "08:00", end = "17:00") {
+      const ranges = document.querySelector(`[data-day="${day}"] .ranges`);
+      const node = document.getElementById("rangeTemplate").content.firstElementChild.cloneNode(true);
+      node.querySelector(".start").value = start;
+      node.querySelector(".end").value = end;
+      node.querySelector(".remove").addEventListener("click", () => node.remove());
+      ranges.appendChild(node);
+    }
+
+    function addException(item = {}) {
+      const node = document.getElementById("exceptionTemplate").content.firstElementChild.cloneNode(true);
+      node.querySelector(".ex-start").value = toLocalInput(item.start);
+      node.querySelector(".ex-end").value = toLocalInput(item.end);
+      node.querySelector(".ex-available").value = String(Boolean(item.available));
+      node.querySelector(".ex-reason").value = item.reason || "";
+      node.querySelector(".remove").addEventListener("click", () => node.remove());
+      exceptionsEl.appendChild(node);
+    }
+
+    function toLocalInput(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const pad = n => String(n).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function localInputToIso(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+    }
+
+    function buildWeek() {
+      weekEl.innerHTML = "";
+      for (const [key, label] of days) {
+        const row = document.createElement("div");
+        row.className = "day";
+        row.dataset.day = key;
+        row.innerHTML = `<div class="day-name">${label}</div><div class="ranges"></div><button type="button">Ajouter</button>`;
+        row.querySelector("button").addEventListener("click", () => addRange(key));
+        weekEl.appendChild(row);
+      }
+    }
+
+    function render(data) {
+      state.planning = data.Planning;
+      const worker = data.Worker || {};
+      document.getElementById("workerName").textContent = worker.workerName || worker.hostname || "Worker detecte";
+      document.getElementById("lastSeen").textContent = worker.lastSeen || "-";
+      document.querySelector(`input[name="mode"][value="${state.planning.mode || "none"}"]`).checked = true;
+      buildWeek();
+      for (const [day] of days) {
+        for (const item of state.planning.weekly?.[day] || []) addRange(day, item.start, item.end);
+      }
+      exceptionsEl.innerHTML = "";
+      for (const item of state.planning.exceptions || []) addException(item);
+      if (!exceptionsEl.children.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Aucune exception.";
+        exceptionsEl.appendChild(empty);
+      }
+    }
+
+    function collect() {
+      const weekly = {};
+      for (const [day] of days) {
+        weekly[day] = [...document.querySelectorAll(`[data-day="${day}"] .range`)].map(row => ({
+          start: row.querySelector(".start").value,
+          end: row.querySelector(".end").value
+        })).filter(item => item.start && item.end);
+      }
+      const exceptions = [...exceptionsEl.querySelectorAll(".exception")].map(row => ({
+        start: localInputToIso(row.querySelector(".ex-start").value),
+        end: localInputToIso(row.querySelector(".ex-end").value),
+        available: row.querySelector(".ex-available").value === "true",
+        reason: row.querySelector(".ex-reason").value,
+        source: "user-web"
+      })).filter(item => item.start && item.end);
+      return {
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Paris",
+        mode: document.querySelector("input[name='mode']:checked")?.value || "none",
+        weekly,
+        exceptions
+      };
+    }
+
+    async function loadPlanning() {
+      setStatus("Chargement du planning...");
+      const response = await fetch("/api/planning", { headers: { "Accept": "application/json" } });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 404) { location.replace("https://samsamantha1977.github.io/Cassandre/"); return; }
+        if (useLocalWorkerProxy(response.status)) return;
+        throw new Error(data.Error || "Chargement impossible");
+      }
+      render(data);
+      setStatus("Planning charge.", "ok");
+    }
+
+    async function savePlanning() {
+      setStatus("Enregistrement...");
+      const response = await fetch("/api/planning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ Planning: collect() })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (useLocalWorkerProxy(response.status)) return;
+        throw new Error(data.Error || "Enregistrement impossible");
+      }
+      render(data);
+      setStatus("Planning enregistre sur le Controller.", "ok");
+    }
+
+    document.getElementById("reload").addEventListener("click", () => loadPlanning().catch(err => setStatus(err.message, "error")));
+    document.getElementById("save").addEventListener("click", () => savePlanning().catch(err => setStatus(err.message, "error")));
+    document.getElementById("addException").addEventListener("click", () => {
+      if (exceptionsEl.querySelector(".empty")) exceptionsEl.innerHTML = "";
+      addException();
+    });
+
+    buildWeek();
+    loadPlanning().catch(err => setStatus(err.message, "error"));
+  </script>
+</body>
+</html>

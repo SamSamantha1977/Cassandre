@@ -19,6 +19,7 @@ from pathlib import Path, PurePosixPath
 
 REPO = "SamSamantha1977/Cassandre"
 BASE_RELEASE = f"https://github.com/{REPO}/releases/latest/download"
+TECHNICAL_REPOSITORY_URL = f"https://raw.githubusercontent.com/{REPO}/main/Releases"
 FRAGMENT_URLS = (
     f"https://raw.githubusercontent.com/{REPO}/main/worker/sharedsecret.txt",
     f"https://raw.githubusercontent.com/{REPO}/refs/heads/main/worker/sharedsecret.txt",
@@ -563,7 +564,7 @@ def install(args) -> Path:
         archive = Path(args.package).expanduser().resolve() if args.package else temp / asset
         if not args.package:
             cmtrace(log, f"Downloading {asset}.")
-            download(f"{BASE_RELEASE}/{asset}", archive)
+            download(f"{TECHNICAL_REPOSITORY_URL}/{asset}", archive)
             hashes_text = read_url_text(f"{BASE_RELEASE}/SHA256SUMS.txt", timeout=30)
             expected = expected_hash(asset, hashes_text)
             actual = sha256_file(archive)

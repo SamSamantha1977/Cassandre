@@ -65,57 +65,43 @@ L'une des orientations étudiées est le **partage de capacité entre machines**
 
 Exemple d'objectif : pouvoir un jour jouer avec un ami dont l'ordinateur n'est normalement pas assez puissant, en s'appuyant sur des ressources mises à disposition par la toile Cassandre plutôt que de lui imposer l'achat immédiat de nouveau matériel.
 
-## Installation simple — aucune ligne de commande à connaître
+## Installation simple — sans droits administrateur local
 
-La version destinée au grand public ne demande pas de savoir utiliser PowerShell, Terminal, `sudo` ou une invite de commandes.
+**Cassandre est un réseau communautaire et gratuit de partage des ressources informatiques disponibles.** L'installation et la participation ne nécessitent ni paiement, ni abonnement, ni droits administrateur sur votre ordinateur.
+
+Le WORKER s'installe uniquement dans le profil de l'utilisateur courant. Il utilise les ressources disponibles lorsque vous ne vous servez pas de l'ordinateur ; votre utilisation reste prioritaire.
 
 ### Windows
 
-1. Ouvrez la [Release Cassandre Worker](https://github.com/SamSamantha1977/Cassandre/releases/tag/worker-bootstrap).
-2. Téléchargez **`setup_windows.exe`**.
-3. Double-cliquez sur le fichier téléchargé.
-4. Validez la demande d'autorisation de Windows.
-5. L'installation se poursuit automatiquement.
-
-Aucune commande n'est à saisir.
-
-### Linux — Debian / Ubuntu / Linux Mint et dérivés
-
-1. Ouvrez la [Release Cassandre Worker](https://github.com/SamSamantha1977/Cassandre/releases/tag/worker-bootstrap).
-2. Téléchargez **`M3DIA-Worker.deb`**.
-3. Double-cliquez sur le fichier.
-4. Cliquez sur **Installer** dans le gestionnaire de logiciels de votre distribution.
-5. Validez l'autorisation demandée.
-
-### Linux — Fedora / RHEL / Rocky Linux / AlmaLinux et dérivés
-
-1. Ouvrez la [Release Cassandre Worker](https://github.com/SamSamantha1977/Cassandre/releases/tag/worker-bootstrap).
-2. Téléchargez **`M3DIA-Worker.rpm`**.
-3. Double-cliquez sur le fichier.
-4. Cliquez sur **Installer**.
-5. Validez l'autorisation demandée.
-
-### Linux — méthode universelle
-
-Pour les distributions ne prenant pas directement en charge les packages précédents, **`INSTALL-CASS-Lin.sh`** reste disponible dans la Release.
-
-Les packages `.deb` et `.rpm` restent recommandés aux utilisateurs non techniques.
+1. Téléchargez [INSTALL-CASS-Win.cmd](https://github.com/SamSamantha1977/Cassandre/blob/main/INSTALL-CASS-Win.cmd) en cliquant sur **Télécharger le fichier brut**.
+2. Double-cliquez sur le fichier téléchargé.
+3. Laissez l'installation se terminer. Elle s'effectue dans votre compte utilisateur, **sans demande d'élévation administrateur (UAC)**.
 
 ### macOS
 
-Pour macOS, téléchargez **uniquement `Cass-MacOs.zip`**.
+1. Téléchargez [INSTALL-CASS-Mac.command](https://github.com/SamSamantha1977/Cassandre/blob/main/INSTALL-CASS-Mac.command) à l'aide du bouton **Télécharger le fichier brut**.
+2. Ouvrez **Terminal**, saisissez `sh ` (suivi d'un espace), puis faites glisser le fichier téléchargé dans la fenêtre pour insérer son chemin.
+3. Appuyez sur **Entrée** pour lancer l'installation dans votre session, **sans mot de passe administrateur ni `sudo`**.
 
-1. Ouvrez le ZIP téléchargé.
-2. Double-cliquez sur **`Cassandre-Installer.app`**.
-3. Si macOS bloque l'ouverture car le développeur n'est pas identifié : cliquez sur **OK**, puis ouvrez **Préférences Système → Sécurité et confidentialité → Général → Ouvrir quand même** et confirmez **Ouvrir**.
-4. Validez l'autorisation administrateur demandée par macOS.
-5. Une boîte de dialogue confirme **`Cassandre Worker est installe.`**
+Cette méthode reste utilisable si macOS ne reconnaît pas le fichier comme directement exécutable. L'installation crée un agent de session utilisateur (LaunchAgent).
 
-**Aucune fenêtre Terminal ne doit apparaître.** L'installateur est une application graphique discrète et, après installation, les tâches permanentes du WORKER sont exécutées directement en arrière-plan par `launchd`. Elles n'ouvrent ni Terminal, ni shell interactif, ni fenêtre de commande.
+### Linux — Debian, Ubuntu, Mint, Fedora, RHEL, Rocky, AlmaLinux et dérivés
 
-`Cass-MacOs.zip` est autonome : le paquet technique du WORKER est inclus dans l'archive et son empreinte SHA-256 est vérifiée avant installation. Il n'est donc plus nécessaire que le lanceur télécharge un second package d'installation depuis GitHub.
+1. Téléchargez [INSTALL-CASS-Lin.sh](https://github.com/SamSamantha1977/Cassandre/blob/main/INSTALL-CASS-Lin.sh) à l'aide du bouton **Télécharger le fichier brut**.
+2. Ouvrez un **Terminal**, saisissez `sh ` (suivi d'un espace), puis faites glisser le fichier téléchargé dans la fenêtre pour insérer son chemin.
+3. Appuyez sur **Entrée**. Le WORKER s'installe dans votre compte utilisateur, **sans `sudo`, sans installation système `.deb` ni `.rpm`**.
 
-Le fichier `M3DIA-Worker-macOS.zip` reste un package technique interne de la Release et **ne doit pas être choisi pour une installation manuelle**.
+Selon la distribution, le lancement automatique est assuré par `systemd --user` ou par l'autodémarrage de la session graphique.
+
+### Configuration et planning du WORKER
+
+Une fois le WORKER installé, utilisez l'adresse universelle suivante pour accéder à son interface de paramétrage et à son planning :
+
+**https://cassandre.infos.st/planning**
+
+### Important
+
+Les trois lanceurs ci-dessus constituent les **installateurs grand public sans droits administrateur**. Les archives techniques sont récupérées automatiquement : il n'est pas nécessaire de les télécharger ou de les installer soi-même. Les installations dépendent d'un accès Internet aux composants publiés par le projet.
 
 ## Si Windows SmartScreen affiche un avertissement
 
@@ -123,28 +109,13 @@ Cassandre est un projet communautaire récent et les versions actuellement publi
 
 Un avertissement SmartScreen signifie que Windows ne dispose pas encore d'une réputation suffisante pour ce fichier ; ce n'est pas, à lui seul, une détection de logiciel malveillant.
 
-Si l'avertissement apparaît pour le fichier téléchargé depuis la Release officielle Cassandre :
-
-1. cliquez sur **Informations complémentaires** ;
-2. cliquez sur **Exécuter quand même** ;
-3. validez ensuite la demande d'autorisation Windows.
+Si un avertissement apparaît pour le lanceur officiel, vérifiez son origine et décidez de son exécution selon les règles de sécurité de votre ordinateur. **L'installation de Cassandre n'exige pas de privilèges administrateur.**
 
 Nous travaillons à améliorer progressivement la chaîne de confiance et la vérification des versions publiées.
 
-## Packages disponibles
+## Fichiers proposés au téléchargement
 
-La Release GitHub `worker-bootstrap` contient les points d'entrée grand public et les packages techniques :
-
-- **Windows grand public** : `setup_windows.exe`
-- **Windows package** : `M3DIA-Worker-Windows.zip`
-- **Linux Debian/Ubuntu/Mint** : `M3DIA-Worker.deb`
-- **Linux Fedora/RHEL/Rocky/Alma** : `M3DIA-Worker.rpm`
-- **Linux universel** : `INSTALL-CASS-Lin.sh`
-- **Linux package technique** : `M3DIA-Worker-Linux.tar.gz`
-- **macOS grand public — à télécharger** : `Cass-MacOs.zip`
-- **macOS package technique — ne pas télécharger manuellement** : `M3DIA-Worker-macOS.zip`
-
-Les empreintes SHA-256 sont fournies dans **`SHA256SUMS.txt`** pour permettre de vérifier l'intégrité des fichiers téléchargés.
+La [Release officielle Cassandre Worker](https://github.com/SamSamantha1977/Cassandre/releases) présente les lanceurs destinés aux participants. Les composants techniques nécessaires sont obtenus automatiquement par ces lanceurs.
 
 ## Transparence
 

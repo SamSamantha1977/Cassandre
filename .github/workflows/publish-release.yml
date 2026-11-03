@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - "Releases/**"
+      - "README.md"
+      - "install-user.py"
       - "INSTALL-CASS-Win.cmd"
       - "setup_windows.cs"
       - "build-setup-windows.ps1"
@@ -94,28 +96,59 @@ jobs:
           prerelease: false
           overwrite_files: true
           body: |
-            Public installation packages for the Cassandre Worker.
+            Cassandre est un reseau communautaire gratuit de partage de ressources informatiques.
+            Installation du WORKER dans le compte utilisateur, sans droits administrateur local.
 
-            Windows and Linux are supported targets. macOS remains experimental on untested versions/configurations.
+            Windows : INSTALL-CASS-Win.cmd
+            macOS : INSTALL-CASS-Mac.command
+            Linux : INSTALL-CASS-Lin.sh
 
-            macOS: download only Cass-MacOs.zip. It is the self-contained public installer.
-            M3DIA-Worker-macOS.zip is a technical package and is not intended for manual installation.
+            Configuration : https://cassandre.infos.st/planning
 
-            For non-technical users, prefer the dedicated launchers/packages described in README.md.
+            Les archives techniques restent accessibles automatiquement aux installateurs,
+            mais ne sont pas proposees en telechargement manuel dans cette Release.
           files: |
-            setup_windows.exe
             INSTALL-CASS-Win.cmd
+            INSTALL-CASS-Mac.command
             INSTALL-CASS-Lin.sh
-            Releases/Cass-MacOs.zip
-            Releases/M3DIA-Worker-Windows.zip
-            Releases/M3DIA-Worker-Linux.tar.gz
-            Releases/M3DIA-Worker-macOS.zip
-            Releases/M3DIA-Worker.deb
-            Releases/M3DIA-Worker.rpm
             Releases/SHA256SUMS.txt
 
-      - name: Remove superseded macOS public asset
+      - name: Masquer les anciennes pieces jointes techniques et administrateur
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release delete-asset worker-bootstrap INSTALL-M3DIA-WORKER-macOS.zip --yes || true
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/cassandre-release-cleanup.cmtrace.log"
+          cmtrace() {
+            printf '<![LOG[%s]LOG]!><time="%s" date="%s" component="ReleaseCleanup" context="" type="%s" thread="0" file="">\n' "$1" "$(date '+%H:%M:%S.000')" "$(date '+%m-%d-%Y')" "$2" >> "$LOG"
+          }
+          cmtrace "Verification des assets publics Cassandre." 1
+          for required in INSTALL-CASS-Win.cmd INSTALL-CASS-Mac.command INSTALL-CASS-Lin.sh Releases/SHA256SUMS.txt; do
+            if [ "$required" = "Releases/SHA256SUMS.txt" ]; then required="SHA256SUMS.txt"; fi
+            if ! gh release view worker-bootstrap --json assets --jq '.assets[].name' -R "$GITHUB_REPOSITORY" | grep -Fxq "$required"; then
+              cmtrace "Asset public absent: $required" 3
+              exit 1
+            fi
+          done
+          while IFS= read -r asset; do
+            case "$asset" in
+              *M3DIA*|setup_windows.exe|Cass-MacOs.zip)
+                cmtrace "Suppression de la piece jointe obsolete: $asset" 1
+                gh release delete-asset worker-bootstrap "$asset" --yes -R "$GITHUB_REPOSITORY"
+                ;;
+            esac
+          done < <(gh release view worker-bootstrap --json assets --jq '.assets[].name' -R "$GITHUB_REPOSITORY")
+          if gh release view worker-bootstrap --json assets --jq '.assets[].name' -R "$GITHUB_REPOSITORY" | grep -E 'M3DIA|^(setup_windows.exe|Cass-MacOs.zip)$'; then
+            cmtrace "Des assets techniques ou administrateur subsistent dans la Release." 3
+            exit 1
+          fi
+          cmtrace "Release publique nettoyee et controlee." 1
+
+      - name: Archiver le journal CMTrace de la publication
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cassandre-release-cleanup-cmtrace
+          path: ${{ runner.temp }}/cassandre-release-cleanup.cmtrace.log
+          if-no-files-found: warn

@@ -1,0 +1,9 @@
+--- a/D:/M3DIACompute/Cassandre/Services/CTRL/App/web/planning.html
++++ b/D:/M3DIACompute/Cassandre/Services/CTRL/App/web/planning.html
+@@ -292,5 +292,6 @@
+       const data = await response.json();
+       if (!response.ok) {
++        if (response.status === 404) { location.replace("https://samsamantha1977.github.io/Cassandre/"); return; }
+         if (useLocalWorkerProxy(response.status)) return;
+         throw new Error(data.Error || "Chargement impossible");
+       }
