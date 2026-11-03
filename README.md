@@ -43,7 +43,7 @@ Les échanges nécessaires au fonctionnement du réseau sont protégés et l'ins
 
 L'espace WORKER peut également regrouper les ordinateurs associés à un même participant afin de présenter plus clairement ses machines et leur contribution cumulée.
 
-Il comprend désormais des espaces **APPLICATIONS** et **CONNECTEURS**. L'architecture de connecteurs permet à des logiciels compatibles de soumettre des traitements à Cassandre via le WORKER lorsqu'un connecteur est explicitement activé. Un premier connecteur est prévu pour **Blender**, notamment pour les usages de création et de rendu 3D.
+Il comprend désormais des espaces **APPLICATIONS** et **CONNEXIONS IA**. L'architecture de connecteurs permet à des logiciels compatibles de soumettre des traitements à Cassandre via le WORKER lorsqu'un connecteur est explicitement activé. Un premier connecteur est prévu pour **Blender**, notamment pour les usages de création et de rendu 3D.
 
 L'installation ou la mise à jour d'un connecteur n'est pas poussée automatiquement à un WORKER : elle doit résulter d'une action explicite. Les mécanismes internes d'authentification et de sécurité du réseau restent volontairement hors de la documentation publique.
 
@@ -95,9 +95,19 @@ Selon la distribution, le lancement automatique est assuré par `systemd --user`
 
 ### Configuration et planning du WORKER
 
-Une fois le WORKER installé, utilisez l'adresse universelle suivante pour accéder à son interface de paramétrage et à son planning :
+Une fois le WORKER installé, l'installateur ouvre l'interface de configuration de **cet ordinateur**. Vous pouvez également la rouvrir depuis le PC sur lequel le WORKER est installé :
+
+**http://127.0.0.1:19402/worker**
+
+Cette adresse locale désigne uniquement votre propre ordinateur. Elle ne sert jamais à identifier les autres WORKERS : chaque WORKER est lié à son compte unique dans l'annuaire Cassandre par son **WorkerGuid**. Le WORKER transmet son identité de manière authentifiée au CONTROLLER.
+
+Vous y retrouvez **MON WORKER**, **PLANNING**, **CONFIGURATION** (espace disque), **CONTRIBUTION**, **MES ORDINATEURS**, **DISCORD**, **APPLICATIONS** (dont Blender et proposition de nouveaux connecteurs) et **CONNEXIONS IA**. Les capacités CPU/RAM/GPU disponibles sont déterminées automatiquement, dans le respect de la priorité de l'utilisateur.
+
+L'adresse publique universelle est également :
 
 **https://cassandre.infos.st/planning**
+
+Cette adresse ne doit pas attribuer de configuration à partir de l'IP publique du visiteur. Sans identité WORKER vérifiée, elle renvoie à la présentation et aux installateurs.
 
 ### Important
 
