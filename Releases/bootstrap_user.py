@@ -19,7 +19,7 @@ import tarfile
 from datetime import datetime
 
 REPO = 'SamSamantha1977/Cassandre'
-BASE = f'https://github.com/{REPO}/releases/download/worker-bootstrap'
+BASE = f'https://raw.githubusercontent.com/{REPO}/main/Releases'
 FRAGMENT = f'https://raw.githubusercontent.com/{REPO}/main/worker/sharedsecret.txt'
 MIN_PY = (3, 11)
 ROOT = ((pathlib.Path(os.environ.get('LOCALAPPDATA') or (pathlib.Path.home() / 'AppData' / 'Local')) / 'Cassandre' / 'Worker')

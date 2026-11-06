@@ -103,11 +103,17 @@ Cette adresse locale désigne uniquement votre propre ordinateur. Elle ne sert j
 
 Vous y retrouvez **MON WORKER**, **PLANNING**, **CONFIGURATION** (espace disque), **CONTRIBUTION**, **MES ORDINATEURS**, **DISCORD**, **APPLICATIONS** (dont Blender et proposition de nouveaux connecteurs) et **CONNEXIONS IA**. Les capacités CPU/RAM/GPU disponibles sont déterminées automatiquement, dans le respect de la priorité de l'utilisateur.
 
-L'adresse publique universelle est également :
+**Présentation publique et installateurs disponibles :**
 
-**https://cassandre.infos.st/planning**
+https://samsamantha1977.github.io/Cassandre/
 
-Cette adresse ne doit pas attribuer de configuration à partir de l'IP publique du visiteur. Sans identité WORKER vérifiée, elle renvoie à la présentation et aux installateurs.
+**Configuration personnelle du WORKER (à ouvrir sur l'ordinateur où il est installé) :**
+
+http://127.0.0.1:19402/worker
+
+**Adresse Azote : activation non terminée au 3 novembre 2026.** Le nom https://cassandre.infos.st/planning renvoie actuellement HTTP 404 avec le texte « test », car Azote affiche « Domaine en attente de validation ». Ne pas communiquer cette adresse comme fonctionnelle tant que la validation n'est pas effective.
+
+La configuration est identifiée par le WorkerGuid unique du WORKER, avec une preuve d'identité signée ; elle n'est jamais attribuée à partir de l'adresse IP publique du visiteur. En l'absence d'une identité reconnue, la page publique doit proposer la présentation et les installateurs.
 
 ### Important
 

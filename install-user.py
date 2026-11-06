@@ -606,7 +606,7 @@ def install_linux_startup(root: Path, config_path: Path, log: Path, start_now: b
         "Wants=network-online.target\n\n"
         "[Service]\n"
         "Type=simple\n"
-        f"Environment=M3DIA_WORKER_CONFIG={config_path}\n"
+        f"Environment={_systemd_quote('M3DIA_WORKER_CONFIG=' + str(config_path))}\n"
         f"ExecStart={_systemd_quote(sys.executable)} {_systemd_quote(root / 'user_agent.py')}\n"
         "Restart=always\n"
         "RestartSec=5\n"

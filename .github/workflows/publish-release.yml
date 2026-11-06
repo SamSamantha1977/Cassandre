@@ -103,7 +103,9 @@ jobs:
             macOS : INSTALL-CASS-Mac.command
             Linux : INSTALL-CASS-Lin.sh
 
-            Configuration : https://cassandre.infos.st/planning
+            Configuration du WORKER installe : http://127.0.0.1:19402/worker (a ouvrir sur le PC du WORKER).
+            Presentation publique et installation : https://samsamantha1977.github.io/Cassandre/
+            Le nom cassandre.infos.st n'est pas utilise tant que sa validation Azote n'est pas confirmee.
 
             Les archives techniques restent accessibles automatiquement aux installateurs,
             mais ne sont pas proposees en telechargement manuel dans cette Release.

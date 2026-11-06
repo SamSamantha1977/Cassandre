@@ -10,7 +10,7 @@ set "RC=%ERRORLEVEL%"
 if not "%RC%"=="0" (
     echo.
     echo L'installation de Cassandre Worker a rencontre une erreur.
-    echo Consultez le journal dans %%LOCALAPPDATA%%\CassandreWorker\Logs\install.cmtrace.log
+    echo Consultez le journal dans %LOCALAPPDATA%\CassandreWorker\Logs\install.cmtrace.log
     pause
     exit /b %RC%
 )

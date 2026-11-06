@@ -39,9 +39,9 @@ if [ -z "$PY" ]; then
   if [ ! -x "$UV" ]; then
     cmtrace "Python 3.11+ absent : installation utilisateur de uv."
     fetch 'https://astral.sh/uv/install.sh' "$TMP/uv-install.sh" || { cmtrace "curl/wget absent; bootstrap uv impossible." 3; exit 2; }
-    UV_INSTALL_DIR="$UV_DIR" UV_NO_MODIFY_PATH=1 /bin/sh "$TMP/uv-install.sh"
+    UV_INSTALL_DIR="$UV_DIR" UV_NO_MODIFY_PATH=1 /bin/sh "$TMP/uv-install.sh" || { cmtrace "Installation locale de uv echouee." 3; exit 2; }
   fi
-  "$UV" python install 3.12 --no-progress
+  "$UV" python install 3.12 --no-progress || { cmtrace "Installation Python utilisateur par uv echouee." 3; exit 2; }
   PY=$("$UV" python find '>=3.11' 2>/dev/null | head -n 1 || true)
 fi
 valid_python "$PY" || { cmtrace "Python 3.11+ introuvable apres bootstrap utilisateur." 3; exit 23; }
@@ -49,7 +49,7 @@ cmtrace "Python retenu: $PY"
 
 fetch "$INSTALLER_URL" "$PYINSTALLER" || { cmtrace "Telechargement de install-user.py impossible." 3; exit 2; }
 cmtrace "install-user.py telecharge depuis le depot public."
-"$PY" "$PYINSTALLER"
-rc=$?
+rc=0
+"$PY" "$PYINSTALLER" || rc=$?
 [ "$rc" -eq 0 ] && cmtrace "Installation Linux utilisateur terminee avec succes." || cmtrace "Installation Linux utilisateur en echec; code=$rc." 3
 exit "$rc"

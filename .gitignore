@@ -8,3 +8,5 @@ Thumbs.db
 # Sauvegardes BCCE locales - ne pas publier sur GitHub
 archives/
 Archives/
+# Sources privees CONTROLLER - preparation uniquement
+site-ui-staging/
