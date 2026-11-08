@@ -68,11 +68,30 @@ def read_url_text(url: str, timeout: int = 30) -> str:
 
 
 def safe_rel(name: str) -> Path:
-    normalized = name.replace("\\", "/").lstrip("/")
-    pure = PurePosixPath(normalized)
-    if not normalized or any(part in ("", ".", "..") for part in pure.parts):
+    """Validate an archive member as a strictly relative path on every OS.
+
+    A Posix-style "C:/..." is not absolute to PurePosixPath but becomes a
+    drive-qualified path when converted to a Windows Path.  Never permit
+    archive extraction to escape the destination directory.
+    """
+    normalized = str(name or "").replace("\\", "/")
+    if not normalized or normalized.startswith("/") or "\x00" in normalized:
         raise ValueError(f"Archive path refused: {name!r}")
-    return Path(*pure.parts)
+    parts = normalized.split("/")
+    reserved = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)),
+                *(f"LPT{i}" for i in range(1, 10))}
+    if len(parts) > 128 or len(normalized) > 4096:
+        raise ValueError(f"Archive path refused: {name!r}")
+    for part in parts:
+        if (not part or part in (".", "..") or ":" in part
+                or part.endswith((" ", "."))
+                or any(ord(char) < 32 or ord(char) == 127 for char in part)
+                or part.split(".", 1)[0].upper() in reserved):
+            raise ValueError(f"Archive path refused: {name!r}")
+    result = Path(*parts)
+    if result.is_absolute() or result.drive or result.root:
+        raise ValueError(f"Archive path refused: {name!r}")
+    return result
 
 
 def extract_zip(archive: Path, destination: Path) -> None:
